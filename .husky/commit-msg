@@ -1,0 +1,58 @@
+#!/bin/sh
+
+# Strict Gitmoji + Conventional Commits validator
+# REQUIRED format: [gitmoji] [type](scope?): [subject starting with lowercase]
+# Examples:
+#   ✨ feat: add new feature
+#   🐛 fix(auth): resolve login issue  
+#   📝 docs: update readme file
+#   🎨 style: improve code formatting
+
+MSG_FILE="$1"
+if [ -z "$MSG_FILE" ]; then
+  echo "No commit message file supplied"
+  exit 1
+fi
+
+MSG=$(cat "$MSG_FILE")
+
+# Common gitmoji patterns (expand as needed)
+GITMOJI_PATTERN="[✨🐛🔧📝🎨🚀🔥💚👷🔒⬆️⬇️📌🎉🔖🚨💄♻️🔨🌐💡🗃️🏗️📱⚡🍱♿🔊🔇🃏🩹🧐⚰️🧪👔🩺🔐🏷️🌱🚩🥅💫🗑️🔀]"
+
+# Strict regex: gitmoji + space + type + optional(scope) + colon + space + lowercase subject
+echo "$MSG" | grep -Eq "^${GITMOJI_PATTERN} (feat|fix|docs|chore|perf|refactor|style|test|build|ci|config|merge)(\([^)]+\))?: [a-z]"
+
+if [ $? -ne 0 ]; then
+  echo "\n✘ Commit message must follow the STRICT gitmoji + conventional commits format."
+  echo ""
+  echo "📋 Required format: [gitmoji] [type](scope?): [subject]"
+  echo ""
+  echo "📐 Rules:"
+  echo "   • Gitmoji is REQUIRED at the start"
+  echo "   • Type is REQUIRED (feat|fix|docs|chore|perf|refactor|style|test|build|ci)"
+  echo "   • Scope is optional: (scope)"
+  echo "   • Colon and space are REQUIRED: ': '"
+  echo "   • Subject MUST start with lowercase letter"
+  echo ""
+  echo "✅ Valid examples:"
+  echo "   ✨ feat: add user authentication"
+  echo "   🐛 fix(api): handle timeout errors"
+  echo "   📝 docs: update installation guide"
+  echo "   🎨 style: improve component CSS"
+  echo "   🔧 chore(deps): update dependencies"
+  echo ""
+  echo "❌ Invalid examples:"
+  echo "   feat: missing gitmoji"
+  echo "   ✨ Add feature (missing type)"
+  echo "   ✨ feat Add feature (missing colon)"
+  echo "   ✨ feat: Add feature (subject starts with uppercase)"
+  echo ""
+  echo "📚 Common gitmoji + types:"
+  echo "   ✨ feat    🐛 fix     📝 docs    🎨 style"
+  echo "   🚀 deploy  🔧 chore   💚 ci     👷 build"
+  echo "   🔥 remove  ♻️ refactor 🔒 security ⬆️ deps"
+  echo ""
+  exit 1
+fi
+
+exit 0
