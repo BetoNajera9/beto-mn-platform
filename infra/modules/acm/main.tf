@@ -1,7 +1,10 @@
-# Certificate for API subdomain
-resource "aws_acm_certificate" "api" {
-  domain_name       = var.domain_name
-  validation_method = "DNS"
+# ACM Certificate (Regional or CloudFront)
+# For CloudFront: Must be created in us-east-1 region (pass provider via module)
+# For API Gateway: Created in the same region as the API (uses default provider)
+resource "aws_acm_certificate" "main" {
+  domain_name               = var.domain_name
+  subject_alternative_names = var.subject_alternative_names
+  validation_method         = "DNS"
 
   tags = {
     Name = var.domain_name
@@ -12,10 +15,10 @@ resource "aws_acm_certificate" "api" {
   }
 }
 
-# DNS validation record
+# DNS validation records
 resource "aws_route53_record" "cert_validation" {
   for_each = {
-    for dvo in aws_acm_certificate.api.domain_validation_options : dvo.domain_name => {
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
       record = dvo.resource_record_value
       type   = dvo.resource_record_type
@@ -31,7 +34,7 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 # Certificate validation
-resource "aws_acm_certificate_validation" "api" {
-  certificate_arn         = aws_acm_certificate.api.arn
+resource "aws_acm_certificate_validation" "main" {
+  certificate_arn         = aws_acm_certificate.main.arn
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }

@@ -1,10 +1,58 @@
 # ACM Module
 
-This module creates and validates SSL/TLS certificates using AWS Certificate Manager (ACM) for secure HTTPS connections.
+This module creates and validates SSL/TLS certificates using AWS Certificate Manager (ACM) for secure HTTPS connections. It supports both regional certificates (for API Gateway) and CloudFront certificates (which must be in us-east-1).
 
 ## Overview
 
 The ACM module handles the complete certificate lifecycle: requesting a certificate, creating DNS validation records in Route53, and waiting for validation to complete. It uses DNS validation (not email) for automatic, hands-free certificate issuance.
+
+## Features
+
+- SSL/TLS certificate creation with DNS validation
+- Support for Subject Alternative Names (SANs) for multiple domains
+- Regional certificates for API Gateway
+- CloudFront certificates (us-east-1) with provider alias support
+- Automatic DNS validation via Route53
+- Certificate validation waiter
+
+## Usage
+
+### For API Gateway (Regional Certificate)
+
+```hcl
+module "acm_api" {
+  source = "./modules/acm"
+
+  domain_name    = "api.example.com"
+  hosted_zone_id = "Z1234567890ABC"
+}
+```
+
+### For CloudFront (us-east-1 Certificate)
+
+```hcl
+module "acm_cloudfront" {
+  source = "./modules/acm"
+
+  domain_name               = "example.com"
+  subject_alternative_names = ["www.example.com"]
+  hosted_zone_id            = "Z1234567890ABC"
+  use_cloudfront_provider   = true
+
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+}
+```
+
+**Important:** When using `use_cloudfront_provider = true`, you must configure the us-east-1 provider alias:
+
+```hcl
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+```
 
 ## Resources Created
 
@@ -16,7 +64,8 @@ Requests an SSL certificate from AWS Certificate Manager.
 - Enables HTTPS for custom domains (API Gateway, CloudFront)
 - Free certificates managed by AWS (auto-renewal)
 - `validation_method = "DNS"`: Automatic validation via Route53 (no email required)
-- `domain_name`: The domain/subdomain to secure (e.g., `api-contact.example.com`)
+- `domain_name`: The primary domain to secure (e.g., `api-contact.example.com`)
+- `subject_alternative_names`: Additional domains to include in the certificate
 
 **Lifecycle:**
 ```terraform
@@ -33,12 +82,12 @@ Creates DNS records in Route53 to prove domain ownership.
 **Why?**
 - ACM requires proof you own the domain
 - DNS validation is automatic and doesn't expire
-- Uses `for_each` to handle multiple validation records (if certificate has multiple domains)
+- Uses `for_each` to handle multiple validation records (for multiple domains)
 
 **How it works:**
 ```terraform
 for_each = {
-  for dvo in aws_acm_certificate.api.domain_validation_options : dvo.domain_name => {
+  for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
     name   = dvo.resource_record_name
     record = dvo.resource_record_value
     type   = dvo.resource_record_type
@@ -46,7 +95,7 @@ for_each = {
 }
 ```
 
-ACM provides validation options (usually 1 CNAME record). This loop creates Route53 records for each validation requirement.
+ACM provides validation options (one per domain). This loop creates Route53 records for each validation requirement.
 
 **Parameters:**
 - `allow_overwrite = true`: Replaces existing validation records if present (useful for revalidation)
@@ -59,7 +108,7 @@ Waits for the certificate to be validated and issued.
 
 **Why?**
 - Terraform blocks here until validation completes
-- Prevents using an unvalidated certificate in API Gateway
+- Prevents using an unvalidated certificate in API Gateway or CloudFront
 - Ensures certificate is ready before dependent resources are created
 
 **How it works:**

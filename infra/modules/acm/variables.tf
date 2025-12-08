@@ -1,6 +1,12 @@
 variable "domain_name" {
-  description = "Domain name for the certificate"
+  description = "Primary domain name for the certificate"
   type        = string
+}
+
+variable "subject_alternative_names" {
+  description = "Additional domain names to include in the certificate (SANs)"
+  type        = list(string)
+  default     = []
 }
 
 variable "hosted_zone_id" {
