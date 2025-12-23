@@ -1,0 +1,52 @@
+name: Lambda CI
+
+on:
+  pull_request:
+    paths:
+      - "function/**"
+      - ".github/workflows/function-*.yml"
+
+jobs:
+  test:
+    name: Test Lambda
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: function
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: function/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Run unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Package simulation
+        run: |
+          npm install -g serverless
+          serverless package --stage staging

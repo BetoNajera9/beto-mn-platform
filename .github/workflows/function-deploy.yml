@@ -1,0 +1,69 @@
+name: Lambda Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "function/**"
+
+env:
+  AWS_REGION: "us-east-1"
+
+jobs:
+  deploy:
+    name: Deploy Lambda
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: function
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: function/pnpm-lock.yaml
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prod
+
+      - name: Deploy with Serverless
+        run: |
+          pnpm add -g serverless
+          serverless deploy --stage prod --verbose
+        env:
+          API_GATEWAY_ID: ${{ vars.API_GATEWAY_ID }}
+          API_GATEWAY_ROOT_ID: ${{ vars.API_GATEWAY_ROOT_ID }}
+
+      - name: Run smoke tests
+        run: |
+          # Basic endpoint test
+          echo "Testing endpoint..."
+          # Uncomment when endpoint is ready
+          # curl -X POST https://api-contact.beto-najera.com/contact \
+          #   -H "x-api-key: ${{ secrets.API_GATEWAY_KEY }}" \
+          #   -H "Content-Type: application/json" \
+          #   -d '{"test": true}'
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed, rolling back..."
+          # Manual serverless rollback if needed

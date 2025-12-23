@@ -1,0 +1,8 @@
+# CODEOWNERS
+# Each line is a file pattern followed by one or more owners
+
+# Infrastructure requires extra review
+/infra/** @beto-mn
+
+# Critical workflows
+/.github/workflows/** @beto-mn
