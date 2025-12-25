@@ -2,7 +2,7 @@ name: Lambda Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "function/**"
 

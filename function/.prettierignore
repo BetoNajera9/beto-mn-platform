@@ -1,0 +1,8 @@
+node_modules
+.serverless
+.build
+dist
+*.yaml
+*.yml
+coverage
+.env
