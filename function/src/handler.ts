@@ -9,7 +9,7 @@ export const main = async (
     // Aquí irá tu lógica de negocio
     const body = JSON.parse(event.body || '{}');
 
-    console.log('Parsed Body:', body);
+    console.log('Parsed Body =>', body);
 
     return {
       statusCode: 200,
